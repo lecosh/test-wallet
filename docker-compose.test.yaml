@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wallet_test
+      POSTGRES_USER: wallet_test
+      POSTGRES_PASSWORD: wallet_test
+    volumes:
+      - test-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet_test -d wallet_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  migrator:
+    extends:
+      file: docker-compose.yaml
+      service: migrator
+    environment:
+      GOOSE_DBSTRING: postgres://wallet_test:wallet_test@postgres:5432/wallet_test
+
+  tests:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test
+    environment:
+      TEST_DATABASE_URL: postgres://wallet_test:wallet_test@postgres:5432/wallet_test
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    environment:
+      DATABASE_URL: postgres://wallet_test:wallet_test@postgres:5432/wallet_test
+      HTTP_ADDR: :8000
+    volumes:
+      - ./tests/config.env:/app/config.env:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8000/health"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  k6:
+    image: grafana/k6:1.8.0
+    entrypoint: ["k6", "run"]
+    command: ["/scripts/wallet.js"]
+    environment:
+      BASE_URL: http://api:8000
+    volumes:
+      - ./tests/load:/scripts:ro
+
+volumes:
+  test-postgres-data:

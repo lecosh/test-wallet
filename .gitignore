@@ -1,0 +1,4 @@
+config.env
+bin/
+tests/load/results/
+.DS_Store

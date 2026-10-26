@@ -1,0 +1,170 @@
+basePath: /api/v1
+definitions:
+  ErrorResponse:
+    properties:
+      message:
+        example: Invalid request body
+        type: string
+    type: object
+  UpdateBalanceRequest:
+    properties:
+      amount:
+        example: 1000
+        minimum: 1
+        type: integer
+      operationType:
+        enum:
+        - DEPOSIT
+        - WITHDRAW
+        example: DEPOSIT
+        type: string
+      walletId:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        type: string
+    required:
+    - amount
+    - operationType
+    - walletId
+    type: object
+  WalletListResponse:
+    properties:
+      wallets:
+        items:
+          $ref: '#/definitions/WalletResponse'
+        type: array
+    type: object
+  WalletResponse:
+    properties:
+      balance:
+        example: 0
+        type: integer
+      walletId:
+        format: uuid
+        type: string
+    type: object
+host: localhost:8000
+info:
+  contact: {}
+  description: API для управления балансом кошелька.
+  title: Wallet API
+  version: "1.0"
+paths:
+  /wallet:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ' '
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/UpdateBalanceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WalletResponse'
+        "400":
+          description: Incorrect request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "404":
+          description: Wallet not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "409":
+          description: Insufficient funds or balance limit exceeded
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Update wallet balance
+      tags:
+      - wallets
+  /wallets:
+    get:
+      parameters:
+      - default: 20
+        description: ' '
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: ' '
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WalletListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Get list of wallets
+      tags:
+      - wallets
+  /wallets/{walletID}:
+    get:
+      parameters:
+      - description: UUID кошелька
+        format: uuid
+        in: path
+        name: walletID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/WalletResponse'
+        "400":
+          description: Invalid UUID
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "404":
+          description: Wallet not found
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Get wallet balance
+      tags:
+      - wallets
+  /wallets/create:
+    post:
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/WalletResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/ErrorResponse'
+      summary: Create wallet
+      tags:
+      - wallets
+schemes:
+- http
+swagger: "2.0"
